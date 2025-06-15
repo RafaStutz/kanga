@@ -4,6 +4,7 @@ from pathlib import Path
 from hashlib import blake2b
 from tqdm import tqdm
 from sklearn.feature_selection import f_regression
+from collections import Counter
 
 from .symbolic_lib import PRIMS, NP_FUNCS
 
@@ -109,3 +110,66 @@ def get_feature_names(d_original: int) -> list[str]:
         for prim in PRIMS:
             names.append(f"x{j}_{prim.name}")
     return names
+
+
+def prim_mask_to_feat_mask(prim_mask: npt.NDArray[np.bool_],
+                           d_original: int) -> npt.NDArray[np.bool_]:
+    """Converte máscara de primitivas (len=|PRIMS|) para colunas expandidas."""
+    prim_names = np.array([p.name for p in PRIMS])
+    sel_prim   = prim_names[prim_mask]          # nomes escolhidos
+
+    feat_names = np.array(get_feature_names(d_original))
+    feat_prim  = np.array([n.split("_",1)[1] for n in feat_names])
+
+    return np.isin(feat_prim, sel_prim)
+
+
+def mask_to_primitives(
+    mask: npt.NDArray[np.bool_],
+    cache: dict[str, npt.NDArray[np.floating]],
+    *,
+    d_original: int,
+    alpha: float = 0.80,
+    min_k: int = 2,
+) -> list[str]:
+    """
+    Converte um mask de colunas (devolvido pelo GA) numa lista de
+    primitivas para auto_symbolic, garantindo >= min_k e cobrindo
+    alpha·100 % da soma dos FCQ.
+
+    Parameters
+    ----------
+    mask        : boolean array (n_features,)
+    cache       : dict com "xy" e "xx" vindos de `compute_fcq_cache`
+    d_original  : # de variáveis originais (para mapear nomes)
+    alpha       : fração cumulativa de score a cobrir
+    min_k       : número mínimo de primitivas distintas
+    """
+    feat_names = np.array(get_feature_names(d_original))
+    names_sel  = feat_names[mask]
+
+    # FCQ aproximado de cada coluna
+    fcq_each = cache["xy"][mask] / (np.abs(cache["xx"]).mean(0)[mask] + 1e-9)
+
+    # soma score por primitiva
+    from collections import Counter
+    scores = Counter()
+    for name, s in zip(names_sel, fcq_each):
+        prim = name.split("_", 1)[1]
+        scores[prim] += float(s)
+
+    ordered = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+    total   = sum(s for _, s in ordered) or 1.0
+
+    cum, lib = 0.0, []
+    for prim, sc in ordered:
+        lib.append(prim)
+        cum += sc
+        if cum / total >= alpha and len(lib) >= min_k:
+            break
+
+    # se ainda não alcançou min_k porque total==0
+    while len(lib) < min_k and len(lib) < len(ordered):
+        lib.append(ordered[len(lib)][0])
+
+    return lib

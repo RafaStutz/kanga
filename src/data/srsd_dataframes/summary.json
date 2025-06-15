@@ -1,0 +1,180 @@
+{
+  "total_dataframes": 15,
+  "equations": {
+    "I_12_1": {
+      "formula": "F = mu * N",
+      "variables": [
+        "mu",
+        "N"
+      ],
+      "total_samples": 1000,
+      "target_mean": 8.993996491478214,
+      "target_std": 4.9985000052847965
+    },
+    "I_12_4": {
+      "formula": "E = q/(4*pi*epsilon*r^2)",
+      "variables": [
+        "q",
+        "r"
+      ],
+      "total_samples": 1000,
+      "target_mean": 5358753153.63235,
+      "target_std": 6018976111.022291
+    },
+    "I_12_5": {
+      "formula": "F = q * E",
+      "variables": [
+        "q",
+        "E"
+      ],
+      "total_samples": 1000,
+      "target_mean": 8.854235711124668,
+      "target_std": 5.198955046106117
+    },
+    "I_14_3": {
+      "formula": "U = m*g*h",
+      "variables": [
+        "m",
+        "h"
+      ],
+      "total_samples": 1000,
+      "target_mean": 86.24414848879533,
+      "target_std": 47.72979824682785
+    },
+    "I_14_4": {
+      "formula": "U = 0.5*k*x^2",
+      "variables": [
+        "k",
+        "x"
+      ],
+      "total_samples": 1000,
+      "target_mean": 15.521858946708548,
+      "target_std": 12.750277041268012
+    },
+    "I_8_14": {
+      "formula": "d = sqrt((x2-x1)^2 + (y2-y1)^2)",
+      "variables": [
+        "x1",
+        "x2",
+        "y1",
+        "y2"
+      ],
+      "total_samples": 1000,
+      "target_mean": 2.099662199123655,
+      "target_std": 0.9715987423556791
+    },
+    "I_10_7": {
+      "formula": "m = m0/sqrt(1-v^2/c^2)",
+      "variables": [
+        "m0",
+        "v"
+      ],
+      "total_samples": 1000,
+      "target_mean": 2.9680076526201393,
+      "target_std": 1.1586408660360084
+    },
+    "I_11_19": {
+      "formula": "A = x1*y1 + x2*y2 + x3*y3",
+      "variables": [
+        "x1",
+        "x2",
+        "x3",
+        "y1",
+        "y2",
+        "y3"
+      ],
+      "total_samples": 1000,
+      "target_mean": 26.985272430963406,
+      "target_std": 8.865316345968033
+    },
+    "I_12_2": {
+      "formula": "F = q1*q2/(4*pi*epsilon*r^2)",
+      "variables": [
+        "q1",
+        "q2",
+        "r"
+      ],
+      "total_samples": 1000,
+      "target_mean": 16296193615.048122,
+      "target_std": 22207372210.489117
+    },
+    "I_12_11": {
+      "formula": "F = q*(E + B*v*sin(theta))",
+      "variables": [
+        "q",
+        "E",
+        "B",
+        "v",
+        "theta"
+      ],
+      "total_samples": 1000,
+      "target_mean": 10.671563666796349,
+      "target_std": 25.919068268671655
+    },
+    "B2": {
+      "formula": "k = mkG/L^2 * (1 + sqrt(1 + 2EL^2/(mk^2G)) * cos(theta1 - theta2))",
+      "variables": [
+        "m",
+        "k_G",
+        "L",
+        "E",
+        "theta1",
+        "theta2"
+      ],
+      "total_samples": 1000,
+      "target_mean": 1.3764779016063435,
+      "target_std": 2.188987386373614
+    },
+    "B3": {
+      "formula": "r = d*(1-alpha^2)/(1+alpha*cos(theta1-theta2))",
+      "variables": [
+        "d",
+        "alpha",
+        "theta1",
+        "theta2"
+      ],
+      "total_samples": 1000,
+      "target_mean": -4.264670884677519,
+      "target_std": 1.7831536603717537
+    },
+    "B4": {
+      "formula": "v = sqrt(2/m * (E - U - L^2/(2*m*r^2)))",
+      "variables": [
+        "m",
+        "E",
+        "U",
+        "L",
+        "r"
+      ],
+      "total_samples": 1000,
+      "target_mean": 2.8400727942699184,
+      "target_std": 0.5140347440847741
+    },
+    "B5": {
+      "formula": "t = 2*pi*d^(3/2)/sqrt(G*(m1+m2))",
+      "variables": [
+        "d",
+        "m1",
+        "m2"
+      ],
+      "total_samples": 1000,
+      "target_mean": 1152718.7567757177,
+      "target_std": 496143.01225233503
+    },
+    "B6": {
+      "formula": "alpha = sqrt(1 + 2*epsilon^2*E*L^2/(m*(Z1*Z2*q**2)^2))",
+      "variables": [
+        "epsilon",
+        "E",
+        "L",
+        "m",
+        "Z1",
+        "Z2",
+        "q"
+      ],
+      "total_samples": 1000,
+      "target_mean": 1.2350876286172556,
+      "target_std": 0.4601658250789418
+    }
+  }
+}

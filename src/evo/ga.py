@@ -18,6 +18,8 @@ from deap import base, creator, tools, algorithms
 
 from kanga.src.utils.feat_sel import mrmr_score
 from kanga.src.utils.logger import save_curve
+from kanga.src.utils.feat_sel import get_feature_names
+
 
 
 @dataclass(slots=True, frozen=True)
@@ -111,7 +113,9 @@ def run_ga(
 
 def _fitness_wrapper(individual: npt.NDArray[np.bool_], *, cache) -> tuple[float]:
     """DEAP expects a tuple fitness."""
-    return (mrmr_score(individual, cache),)
-
+    score = mrmr_score(individual, cache)
+    if not np.isfinite(score):      # pega nan ou ±inf
+        score = -1e9               # penaliza forte
+    return (score,)
 
 __all__ = ["GAConfig", "run_ga"]

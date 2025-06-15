@@ -5,6 +5,7 @@ description = "GA for feature selection in symbolic KANs"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "datasets>=2.19.2",
     "deap==1.4.3",
     "matplotlib==3.6.2",
     "numpy==1.24.4",
