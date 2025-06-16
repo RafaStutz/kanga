@@ -113,6 +113,7 @@ f_exp = lambda x, y_th: (
 
 
 PRIMS: tuple[Primitive, ...] = (
+    Primitive("0", lambda x: np.zeros_like(x), lambda x: x * 0, lambda x: x * 0, 0, lambda x, y: ((), x * 0)),
     Primitive("x", lambda x: x, lambda x: x, lambda x: x, 1, lambda x, y: ((), x)),
     Primitive("x^2", lambda x: x ** 2, lambda x: x ** 2, lambda x: x ** 2, 2, lambda x, y: ((), x ** 2)),
     Primitive("x^3", lambda x: x ** 3, lambda x: x ** 3, lambda x: x ** 3, 3, lambda x, y: ((), x ** 3)),
@@ -140,7 +141,6 @@ PRIMS: tuple[Primitive, ...] = (
     Primitive("arccos", np.arccos, torch.arccos, sympy.acos, 4, f_arccos),
     Primitive("arctan", np.arctan, torch.arctan, sympy.atan, 4, lambda x, y: ((), torch.arctan(x))),
     Primitive("arctanh", np.arctanh, torch.arctanh, sympy.atanh, 4, f_arctanh),
-    Primitive("0", lambda x: np.zeros_like(x), lambda x: x * 0, lambda x: x * 0, 0, lambda x, y: ((), x * 0)),
     Primitive("gaussian", lambda x: np.exp(-x ** 2), lambda x: torch.exp(-x ** 2), lambda x: sympy.exp(-x ** 2), 3, lambda x, y: ((), torch.exp(-x ** 2))),
 )
 

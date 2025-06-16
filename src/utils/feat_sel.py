@@ -101,7 +101,11 @@ def mrmr_score(mask: npt.NDArray[np.bool_], cache: dict[str, npt.NDArray[np.floa
     sub = cache["xx"][np.ix_(idx, idx)]
     red = sub[np.triu_indices_from(sub, k=1)].mean(dtype=np.float32)
 
-    return float(rel / (red + 1e-9))
+    score = rel / (red + 1e-3)
+    if not np.isfinite(score):
+        score = -1e6
+
+    return float(score) 
 
 
 def get_feature_names(d_original: int) -> list[str]:
@@ -114,9 +118,9 @@ def get_feature_names(d_original: int) -> list[str]:
 
 def prim_mask_to_feat_mask(prim_mask: npt.NDArray[np.bool_],
                            d_original: int) -> npt.NDArray[np.bool_]:
-    """Converte máscara de primitivas (len=|PRIMS|) para colunas expandidas."""
+    """Converts primitive mask (len=|PRIMS|) to expanded column mask."""
     prim_names = np.array([p.name for p in PRIMS])
-    sel_prim   = prim_names[prim_mask]          # nomes escolhidos
+    sel_prim   = prim_names[prim_mask] 
 
     feat_names = np.array(get_feature_names(d_original))
     feat_prim  = np.array([n.split("_",1)[1] for n in feat_names])
@@ -133,9 +137,9 @@ def mask_to_primitives(
     min_k: int = 2,
 ) -> list[str]:
     """
-    Converte um mask de colunas (devolvido pelo GA) numa lista de
-    primitivas para auto_symbolic, garantindo >= min_k e cobrindo
-    alpha·100 % da soma dos FCQ.
+    Converts a column mask (returned by GA) into a list of
+    primitives for auto_symbolic, ensuring >= min_k and covering
+    alpha·100 % of the sum of FCQ.
 
     Parameters
     ----------
@@ -148,10 +152,8 @@ def mask_to_primitives(
     feat_names = np.array(get_feature_names(d_original))
     names_sel  = feat_names[mask]
 
-    # FCQ aproximado de cada coluna
     fcq_each = cache["xy"][mask] / (np.abs(cache["xx"]).mean(0)[mask] + 1e-9)
 
-    # soma score por primitiva
     from collections import Counter
     scores = Counter()
     for name, s in zip(names_sel, fcq_each):
@@ -168,7 +170,6 @@ def mask_to_primitives(
         if cum / total >= alpha and len(lib) >= min_k:
             break
 
-    # se ainda não alcançou min_k porque total==0
     while len(lib) < min_k and len(lib) < len(ordered):
         lib.append(ordered[len(lib)][0])
 

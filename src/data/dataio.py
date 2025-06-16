@@ -1,5 +1,5 @@
 from __future__ import annotations
-"""SRSD CSV data loader.
+"""Feynman CSV data loader.
 
 Assume that each CSV has columns `[var1, var2, ..., target]`,
 where the right‑most column target is the value to predict.
@@ -13,14 +13,14 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 __all__ = [
-    "load_srsd_csv",
+    "load_feynman_csv",
     "load_equation",
 ]
 
 
 def _read_csv(csv_name: str) -> pd.DataFrame:
     current_dir = Path(__file__).parent
-    csv_path = current_dir / "srsd_dataframes" / f"{csv_name}.csv"
+    csv_path = current_dir / "feynman_dataframes" / f"{csv_name}.csv"
     return pd.read_csv(csv_path)
 
 
@@ -39,8 +39,8 @@ def _split(df: pd.DataFrame, *, test_size: float, random_state: int | None) -> t
     )
 
 
-def load_srsd_csv(csv_name: str, *, test_size: float = 0.2, random_state: int | None = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Loads a single SRSD CSV and splits it.
+def load_feynman_csv(csv_name: str, *, test_size: float = 0.2, random_state: int | None = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Loads a single Feynman CSV and splits it.
 
     Parameters
     ----------
@@ -59,6 +59,6 @@ def load_srsd_csv(csv_name: str, *, test_size: float = 0.2, random_state: int | 
     return _split(df, test_size=test_size, random_state=random_state)
 
 
-def load_equation(equation_key: str, *, root_dir: str | Path = "./srsd_dataframes", test_size: float = 0.2, random_state: int | None = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def load_equation(equation_key: str, *, root_dir: str | Path = "./feynman_dataframes", test_size: float = 0.2, random_state: int | None = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     csv_path = Path(root_dir) / f"{equation_key}.csv"
-    return load_srsd_csv(csv_path, test_size=test_size, random_state=random_state)
+    return load_feynman_csv(csv_path, test_size=test_size, random_state=random_state)
