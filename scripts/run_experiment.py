@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 from time import perf_counter
 from typing import Any
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import numpy as np
 import sympy as sp
@@ -35,41 +38,48 @@ def main() -> None:
     # 3. mRMR cache
     mi_cache = compute_fcq_cache(X_feat_tr, y_tr)
 
-    # 4.  Genetic Algorithm with mRMR‑FCQ fitness
+    # 4. KAN baseline training
+    base_metrics, base_models = train_symbolic_kan(X_feat_tr, y_tr, X_feat_te, y_te)
+    baseline_kan_time = base_metrics[2]["kan_time"]
+    baseline_sym_time = base_metrics[2]["sym_time"]
+    base_report = {
+        "depth":     2,
+        "metrics":   base_metrics[2],
+        "formula":   str(base_models[2].symbolic_formula()[0][0]),
+        "total_time":  baseline_kan_time,
+        "sym_time":  baseline_sym_time,
+    }
+
+    # 5.  Genetic Algorithm
     tic_ga = perf_counter()
-    best_mask, fitness_curve = run_ga(mi_cache, logger_path=f"runs/ga_{csv_name}.png")
+    best_mask, fitness_curve = run_ga(
+        mi_cache, 
+        X_feat_tr,
+        y_tr,      
+        logger_path=f"runs/ga_{csv_name}.png"
+    )
     ga_time = perf_counter() - tic_ga
     feat_names = np.array(get_feature_names(X_tr.shape[1]))
 
-    # best_mask agora é primitiva-mask (len = |PRIMS|)
     lib_ga = [prim.name for prim, flag in zip(PRIMS, best_mask) if flag]
 
     print(f"GA library: {lib_ga}")
     print(f"GA best mask: {best_mask}")
 
-    # 5. KAN baseline training
-    base_metrics, base_models = train_symbolic_kan(X_feat_tr, y_tr, X_feat_te, y_te)
-    baseline_opt_time = base_metrics[2]["opt_time"]
-    base_report = {                   
-        "depth":     2,
-        "metrics":   base_metrics[2],
-        "formula":   str(base_models[2].symbolic_formula()[0][0]),
-        "opt_time":  baseline_opt_time,
-    }
-
     # 6. KAN with GA library
     evo_metrics, evo_models = train_symbolic_kan_ga(
         X_feat_tr, y_tr, X_feat_te, y_te, lib=lib_ga)
 
-    evo_opt_time       = evo_metrics[2]["opt_time"]
-    total_pipeline_s   = ga_time + evo_opt_time
+    evo_kan_time       = evo_metrics[2]["kan_time"]
+    total_pipeline_s   = ga_time + evo_kan_time
 
     evo_report = {                      
         "library":    lib_ga,
         "depth":      2,
         "metrics":    evo_metrics[2],
         "formula":    str(evo_models[2].symbolic_formula()[0][0]),
-        "opt_time":   evo_opt_time,
+        "kan_time":   evo_kan_time,
+        "sym_time":   evo_metrics[2]["sym_time"],
         "ga_time":    ga_time,
         "total_evo_pipeline": total_pipeline_s,
     }

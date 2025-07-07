@@ -91,7 +91,7 @@ class FeynmanDataFrameGenerator:
             "formula": "E = q/(4*pi*epsilon*r^2)",
             "variables": ["q", "r"],
             "sampling": {
-                "q": ("uniform", 1, 5),             
+                "q": ("uniform", 1e-6, 5e-6),             
                 "r": ("uniform", 1, 5)              
             },
             "function": lambda q, r: q / (4 * np.pi * 8.854e-12 * r**2)
@@ -176,8 +176,8 @@ class FeynmanDataFrameGenerator:
             "formula": "F = q1*q2/(4*pi*epsilon*r^2)",
             "variables": ["q1", "q2", "r"],
             "sampling": {
-                "q1": ("uniform", 1, 5) ,              
-                "q2": ("uniform", 1, 5) ,              
+                "q1": ("uniform", 1e-6, 5e-6) ,              
+                "q2": ("uniform", 1e-6, 5e-6) ,              
                 "r": ("uniform", 1, 5)                 
             },
             "function": lambda q1, q2, r: q1*q2 / (4 * np.pi * 8.854e-12 * r**2)
@@ -189,9 +189,9 @@ class FeynmanDataFrameGenerator:
             "variables": ["q", "E", "B", "v", "theta"],
             "sampling": {
                 "q": ("uniform", 1, 5) ,                
-                "E": ("uniform", 1, 5) ,                
-                "B": ("uniform", 1, 5) ,                
-                "v": ("uniform", 1, 5) ,                
+                "E": ("uniform", 1, 5) ,                 
+                "B": ("uniform", 1e-3, 5e-3),               
+                "v": ("uniform", 1, 1e4) ,                
                 "theta": ("uniform", 1, 5)          
             },
             "function": lambda q, E, B, v, theta: q * (E + B*v*np.sin(theta))
@@ -221,7 +221,7 @@ class FeynmanDataFrameGenerator:
             "variables": ["d", "alpha", "theta1", "theta2"],
             "sampling": {
                 "d": ("uniform", 1, 3),                
-                "alpha": ("uniform", 2, 4),     
+                "alpha": ("uniform", 0, 0.95),     
                 "theta1": ("uniform", 4, 5),
                 "theta2": ("uniform", 4, 5) 
             },
@@ -240,7 +240,7 @@ class FeynmanDataFrameGenerator:
                 "L": ("uniform", 1, 3),             
                 "r": ("uniform", 1, 3)              
             },
-            "function": lambda m, E, U, L, r: np.sqrt(np.abs(2/m * (E - U - L**2/(2*m*r**2))))
+            "function": lambda m,E,U,L,r: np.sqrt(np.maximum(2/m*(E-U-L**2/(2*m*r**2)), 0))
         }
         
         # B5
@@ -412,7 +412,7 @@ def generate_feynman_dataframes(size: int = 100, save: bool = True) -> dict[str,
     return dataframes
 
 if __name__ == "__main__":
-    dfs = generate_feynman_dataframes(size=3000, save=True)
+    dfs = generate_feynman_dataframes(size=5000, save=True)
 
     if dfs:
         example_key = list(dfs.keys())[0]

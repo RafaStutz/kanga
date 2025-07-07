@@ -13,6 +13,7 @@ import random
 import numpy as np
 import numpy.typing as npt
 from deap import base, creator, tools, algorithms
+from sklearn.feature_selection import mutual_info_regression
 
 from kanga.src.utils.feat_sel import mrmr_score
 from kanga.src.utils.logger import save_curve
@@ -22,23 +23,14 @@ import pandas as pd
 from scipy.spatial.distance import pdist
 
 
-_LAMBDA_COST: float = 100000.0
-
-PRIM_COSTS = np.array([p.cost for p in PRIMS], dtype=np.int16)
-
-
 @dataclass(slots=True, frozen=True)
 class GAConfig:
-    pop_size: int = 1000
-    generations: int = 100
+    pop_size: int = 100
+    generations: int = 50
     cxpb: float = 0.8
     mutpb: float = 0.2
     tourn_size: int = 3
     seed: int = 25
-
-
-# -----------------------------------------------------------------------------
-# toolbox ---------------------------------------------------------------------
 
 
 def _build_toolbox(
@@ -55,7 +47,7 @@ def _build_toolbox(
         creator.create("Individual", np.ndarray, fitness=creator.FitnessMax)
 
     toolbox = base.Toolbox()
-    toolbox.register("attr_bool", rng_np.choice, [False, True], p=[0.1, 0.9])
+    toolbox.register("attr_bool", rng_np.choice, [False, True], p=[0.5, 0.5])
     toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_bool, n=n_bits)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
@@ -85,9 +77,18 @@ def _diversity(pop):
 # -----------------------------------------------------------------------------
 # main GA ----------------------------------------------------------------------
 
+def _log_best_individual(gen, hof, n_prims):
+    """Log the best individual's selected primitives"""
+    if len(hof) > 0:
+        best = hof[0]
+        selected = [PRIMS[i].name for i, val in enumerate(best) if val]
+        print(f"Gen {gen}: Best fitness={best.fitness.values[0]:.4f}, Primitives={selected}")
+
 
 def run_ga(
     fcq_cache: dict[str, npt.NDArray[np.floating]],
+    X_feat: npt.NDArray[np.floating],
+    y: npt.NDArray[np.floating],
     *,
     cfg: GAConfig | None = None,
     cache_dir: str | Path | None = None,
@@ -98,6 +99,10 @@ def run_ga(
     n_prims = len(PRIMS)
     n_vars = n_features // n_prims
 
+    print("Pre-computing MI scores...")
+    all_mi_scores = mutual_info_regression(X_feat, y, random_state=12)
+    print("MI computation done.")
+
     if cache_dir:
         cache_dir = Path(cache_dir)
         cache_dir.mkdir(exist_ok=True)
@@ -107,7 +112,7 @@ def run_ga(
             data = np.load(fpath)
             return data["mask"].astype(bool), data["curve"].tolist()
 
-    fitness_fn = partial(_fitness_wrapper, cache=fcq_cache, n_vars=n_vars)
+    fitness_fn = partial(_fitness_wrapper, cache=fcq_cache, n_vars=n_vars, X_feat=X_feat, y=y, mi_scores=all_mi_scores)
     toolbox = _build_toolbox(n_prims, fitness_fn, cfg)
 
     pop = toolbox.population(n=cfg.pop_size)
@@ -129,10 +134,11 @@ def run_ga(
         ngen=cfg.generations,
         stats=stats,
         halloffame=hof,
-        verbose=False,
+        verbose=True,
     )
 
     best = hof[0]
+    print(f"Best individual: {best}, Fitness: {best.fitness.values[0]:.4f}")
     best_mask = np.asarray(best, dtype=bool)
     raw_best = np.asarray(logbook.select("best"), dtype=np.float32)
     curve: list[float] = np.maximum.accumulate(raw_best).tolist()
@@ -148,25 +154,33 @@ def run_ga(
 
     return best_mask, curve
 
-
-# -----------------------------------------------------------------------------
-# fitness ----------------------------------------------------------------------
-
-
-def _fitness_wrapper(individual: npt.NDArray[np.bool_], *, cache, n_vars: int) -> float:
-    feat_mask = prim_mask_to_feat_mask(individual, n_vars)
-    score = mrmr_score(feat_mask, cache)
-
-    sel     = individual.astype(int)
-    k       = sel.sum()                         
-    if k == 0:                                  
+def _fitness_wrapper(individual: npt.NDArray[np.bool_], *, cache, n_vars: int, X_feat, y, mi_scores) -> float:
+    """
+    Fitness for fixed-size primitive selection (exactly K primitives)
+    """
+    K = 4  # Target number of primitives
+    
+    # Penalize if not exactly K primitives
+    n_selected = individual.sum()
+    if n_selected < K:
         return (-np.inf,)
+    
+    feat_mask = prim_mask_to_feat_mask(individual, n_vars)
+    idx = np.flatnonzero(feat_mask)
+    
+    total_mi = mi_scores[idx].sum()
 
-    avg_cost = (sel @ PRIM_COSTS) / k           
+    # Model complexity
+    n_features = len(idx)
+    selected_prims = [p for p, selected in zip(PRIMS, individual) if selected]
 
-    fitness  = score \
-              - _LAMBDA_COST * avg_cost        
+    # Complexity includes both number and cost of primitives
+    primitive_costs = sum(p.cost for p in selected_prims)
+    complexity = n_features + primitive_costs
 
-    return (float(fitness),)
+    # Ratio: information per unit of complexity
+    score = total_mi / complexity
+    
+    return (float(score),)
 
 __all__ = ["GAConfig", "run_ga"]

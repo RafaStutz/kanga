@@ -8,7 +8,6 @@ For each depth in {2, 4, 6} we train a KAN network with:
 * hidden layers = 5 neurons per layer
 * SiLU as residual function
 * GRID = 5, spline order k = 3
-* Global penalty lamb = 1e-4
 
 The main function returns a dictionary of metrics by depth and a dictionary of trained models.
 """
@@ -27,7 +26,6 @@ from kan import KAN
 
 __all__ = ["SymbolicKANConfig", "train_symbolic_kan"]
 
-import pdb
 
 @dataclass(slots=True)
 class SymbolicKANConfig:
@@ -36,10 +34,10 @@ class SymbolicKANConfig:
     test_size: float = 0.2
     random_state: int = 10
 
-    lamb: float = 0.001
+    lamb: float = 0.01
     lamb_entropy: float = 1.0
 
-    steps_phase1: int = 100
+    steps_phase1: int = 120
 
     device: str = "cpu"
     seed: int = 0
@@ -70,7 +68,7 @@ def _train_one_depth(
         "test_label": test_label
     }
 
-    hidden = [3] * depth
+    hidden = [5] * depth
     layer_sizes = [2, *hidden, 1]
 
     model = KAN(
@@ -84,7 +82,7 @@ def _train_one_depth(
 
     model.to(cfg.device)
 
-    tic = perf_counter()
+    t0 = perf_counter()
 
     model.fit(
         dataset,
@@ -94,15 +92,20 @@ def _train_one_depth(
         lamb_entropy=cfg.lamb_entropy,
     )
 
+    train_time = perf_counter() - t0
+
+    t1 = perf_counter()
     model.prune()
+    prune_time = perf_counter() - t1
+    
+    t2 = perf_counter()
     model.auto_symbolic()
+    sym_time = perf_counter() - t2
 
     formula = model.symbolic_formula()[0][0]
     print("Recovered formula:")
     print(formula)
 
-    opt_time = perf_counter() - tic
-    
     with torch.no_grad():
         # numeric evaluation
         y_pred_tr = model(train_input).cpu().numpy()
@@ -117,25 +120,21 @@ def _train_one_depth(
         elif name.startswith("x") and name[1:].isdigit():
             symb_cols.append((int(name[1:]), s))
         else:
-            # símbolo estranho → ignora (constante ou parâmetro interno)
             continue
 
-    # nenhum símbolo  → fórmula constante
     if not symb_cols:
         def _eval_sym(X: np.ndarray) -> np.ndarray:
             const = float(formula.evalf())
             return np.full(X.shape[0], const, dtype=float)
     else:
-        # ordena por índice de coluna para manter correspondência
-        symb_cols.sort()                             # [(0, x_0), (1, x_1), …]
-        cols, syms = zip(*symb_cols)                 #   (0,1),  (x_0,x_1)
+        symb_cols.sort()                           
+        cols, syms = zip(*symb_cols)                 
         f_lam = sp.lambdify(syms, formula, "numpy")
 
         def _eval_sym(X: np.ndarray) -> np.ndarray:
             try:
                 val = f_lam(*[X[:, j] for j in cols])
             except Exception:
-                # qualquer erro → devolve NaN para não quebrar o pipeline
                 return np.full(X.shape[0], np.nan, dtype=float)
             if np.isscalar(val):
                 return np.full(X.shape[0], float(val), dtype=float)
@@ -163,7 +162,10 @@ def _train_one_depth(
         "mse_sym_tr":  mse_sym_tr,
         "mse_sym_te":  mse_sym_te,
         "r2":          r2,
-        "opt_time":    opt_time,
+        "train_time":    train_time,
+        "prune_time":    prune_time,
+        "sym_time":      sym_time,
+        "kan_time":      train_time + prune_time + sym_time,
         "depth":       depth,
         "formula":     str(formula),
     }
